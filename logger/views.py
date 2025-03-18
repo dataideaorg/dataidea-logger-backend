@@ -5,10 +5,12 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.contrib.auth.models import User
 from django.db.models import Count
-from .models import ApiKey, LogMessage
+from .models import ApiKey, EventLogMessage, LlmLogMessage
 from .serializers import (
     UserSerializer, UserRegistrationSerializer, ApiKeySerializer, 
-    LogMessageSerializer, LogMessageCreateSerializer, UserProfileSerializer
+    EventLogMessageSerializer, EventLogMessageCreateSerializer,
+    LlmLogMessageSerializer, LlmLogMessageCreateSerializer,
+    UserProfileSerializer
 )
 
 # Create your views here.
@@ -52,18 +54,35 @@ class ApiKeyViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-class LogMessageViewSet(viewsets.ReadOnlyModelViewSet):
-    serializer_class = LogMessageSerializer
+class EventLogMessageViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = EventLogMessageSerializer
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
         user = self.request.user
-        return LogMessage.objects.filter(api_key__user=user)
+        return EventLogMessage.objects.filter(api_key__user=user)
+
+class LlmLogMessageViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = LlmLogMessageSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        user = self.request.user
+        return LlmLogMessage.objects.filter(api_key__user=user)
 
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
-def create_log_message(request):
-    serializer = LogMessageCreateSerializer(data=request.data)
+def create_event_log(request):
+    serializer = EventLogMessageCreateSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response({"status": "success"}, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def create_llm_log(request):
+    serializer = LlmLogMessageCreateSerializer(data=request.data)
     if serializer.is_valid():
         serializer.save()
         return Response({"status": "success"}, status=status.HTTP_201_CREATED)
@@ -78,10 +97,11 @@ def get_user_stats(request):
     user = request.user
     
     # Get total logs count
-    total_logs = LogMessage.objects.filter(api_key__user=user).count()
+    total_event_logs = EventLogMessage.objects.filter(api_key__user=user).count()
+    total_llm_logs = LlmLogMessage.objects.filter(api_key__user=user).count()
     
-    # Get logs by level
-    logs_by_level = LogMessage.objects.filter(api_key__user=user).values('level').annotate(count=Count('id'))
+    # Get event logs by level
+    logs_by_level = EventLogMessage.objects.filter(api_key__user=user).values('level').annotate(count=Count('id'))
     level_counts = {
         'info': 0,
         'warning': 0,
@@ -96,7 +116,8 @@ def get_user_stats(request):
     api_keys_count = ApiKey.objects.filter(user=user).count()
     
     return Response({
-        'total_logs': total_logs,
+        'total_event_logs': total_event_logs,
+        'total_llm_logs': total_llm_logs,
         'logs_by_level': level_counts,
         'api_keys_count': api_keys_count
     })
