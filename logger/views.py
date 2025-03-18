@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, action
 from django.contrib.auth.models import User
 from django.db.models import Count
 from .models import ApiKey, EventLogMessage, LlmLogMessage
@@ -18,10 +18,31 @@ class ApiKeyViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
-        return ApiKey.objects.filter(user=self.request.user)
+        return ApiKey.objects.filter(user=self.request.user, is_active=True)
     
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+    
+    def update(self, request, *args, **kwargs):
+        """
+        Handle updates to API keys (including is_active status changes)
+        Only allows updating the name and is_active fields
+        """
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        
+        # Only allow updates to name and is_active fields
+        data = {}
+        if 'name' in request.data:
+            data['name'] = request.data['name']
+        if 'is_active' in request.data:
+            data['is_active'] = request.data['is_active']
+            
+        serializer = self.get_serializer(instance, data=data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        
+        return Response(serializer.data)
 
 class EventLogMessageViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = EventLogMessageSerializer
@@ -82,7 +103,7 @@ def get_user_stats(request):
         level_counts[item['level']] = item['count']
     
     # Get API keys count
-    api_keys_count = ApiKey.objects.filter(user=user).count()
+    api_keys_count = ApiKey.objects.filter(user=user, is_active=True).count()
     
     return Response({
         'total_event_logs': total_event_logs,
