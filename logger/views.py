@@ -1,48 +1,17 @@
 from django.shortcuts import render
-from rest_framework import viewsets, permissions, status, generics
+from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework_simplejwt.views import TokenObtainPairView
 from django.contrib.auth.models import User
 from django.db.models import Count
 from .models import ApiKey, EventLogMessage, LlmLogMessage
 from .serializers import (
-    UserSerializer, UserRegistrationSerializer, ApiKeySerializer, 
+    ApiKeySerializer, 
     EventLogMessageSerializer, EventLogMessageCreateSerializer,
-    LlmLogMessageSerializer, LlmLogMessageCreateSerializer,
-    UserProfileSerializer
+    LlmLogMessageSerializer, LlmLogMessageCreateSerializer
 )
 
 # Create your views here.
-
-class RegisterView(generics.CreateAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserRegistrationSerializer
-    permission_classes = [permissions.AllowAny]
-
-class UserView(generics.RetrieveAPIView):
-    serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    
-    def get_object(self):
-        return self.request.user
-
-class UserProfileUpdateView(generics.UpdateAPIView):
-    serializer_class = UserProfileSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    
-    def get_object(self):
-        return self.request.user
-    
-    def update(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', False)
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        
-        # Return updated user data
-        return Response(UserSerializer(instance).data)
 
 class ApiKeyViewSet(viewsets.ModelViewSet):
     serializer_class = ApiKeySerializer
