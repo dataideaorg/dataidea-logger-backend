@@ -16,7 +16,8 @@ class ApiKey(models.Model):
 
 class LogMessage(models.Model):
     api_key = models.ForeignKey(ApiKey, on_delete=models.CASCADE, related_name='log_messages')
-    message = models.TextField()
+    user_id = models.TextField()
+    message = models.TextField(help_text="The log message")
     query = models.TextField(blank=True, null=True, help_text="The query that was sent")
     response = models.TextField(blank=True, null=True, help_text="The response that was received")
     level = models.CharField(max_length=20, default='info', 

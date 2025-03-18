@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.contrib.auth.models import User
+from django.db.models import Count
 from .models import ApiKey, LogMessage
 from .serializers import (
     UserSerializer, UserRegistrationSerializer, ApiKeySerializer, 
@@ -67,3 +68,35 @@ def create_log_message(request):
         serializer.save()
         return Response({"status": "success"}, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def get_user_stats(request):
+    """
+    Get usage statistics for the authenticated user
+    """
+    user = request.user
+    
+    # Get total logs count
+    total_logs = LogMessage.objects.filter(api_key__user=user).count()
+    
+    # Get logs by level
+    logs_by_level = LogMessage.objects.filter(api_key__user=user).values('level').annotate(count=Count('id'))
+    level_counts = {
+        'info': 0,
+        'warning': 0,
+        'error': 0,
+        'debug': 0
+    }
+    
+    for item in logs_by_level:
+        level_counts[item['level']] = item['count']
+    
+    # Get API keys count
+    api_keys_count = ApiKey.objects.filter(user=user).count()
+    
+    return Response({
+        'total_logs': total_logs,
+        'logs_by_level': level_counts,
+        'api_keys_count': api_keys_count
+    })
