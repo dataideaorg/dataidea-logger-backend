@@ -7,6 +7,7 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email']
         read_only_fields = ['id']
 
+
 class UserProfileSerializer(serializers.ModelSerializer):
     current_password = serializers.CharField(write_only=True, required=False)
     new_password = serializers.CharField(write_only=True, required=False)
@@ -40,6 +41,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             
         # Update other fields
         return super().update(instance, validated_data)
+    
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
@@ -62,3 +64,4 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             password=validated_data['password']
         )
         return user 
+    

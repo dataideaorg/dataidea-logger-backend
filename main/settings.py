@@ -163,3 +163,12 @@ SIMPLE_JWT = {
 # CORS settings
 CORS_ALLOW_ALL_ORIGINS = True  # For development only, restrict in production
 CORS_ALLOW_CREDENTIALS = True
+
+
+# Google OAuth2 settings
+GOOGLE_CLIENT_ID = '47663849363-kht9ts6hspt5ovf8spbg39je17jobr1g.apps.googleusercontent.com'
+GOOGLE_CLIENT_SECRET = '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'
+
+
+GOOGLE_REDIRECT_URI = 'http://localhost:3000/auth/google/callback'
+# GOOGLE_REDIRECT_URI = 'https://logger.dataidea.org/auth/google/callback'
