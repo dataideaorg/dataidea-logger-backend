@@ -9,11 +9,12 @@ import csv
 import datetime
 import json
 from collections import defaultdict
-from .models import ApiKey, EventLogMessage, LlmLogMessage
+from .models import ApiKey, EventLogMessage, LlmLogMessage, Project
 from .serializers import (
     ApiKeySerializer, 
     EventLogMessageSerializer, EventLogMessageCreateSerializer,
-    LlmLogMessageSerializer, LlmLogMessageCreateSerializer
+    LlmLogMessageSerializer, LlmLogMessageCreateSerializer,
+    ProjectSerializer
 )
 
 # Create your views here.
@@ -233,10 +234,22 @@ def get_analytics_data(request):
     Returns monthly log counts, LLM source distribution, and log level counts.
     """
     user = request.user
+    project_id = request.query_params.get('project_id')
     
-    # Get all logs for the user
-    event_logs = EventLogMessage.objects.filter(api_key__user=user)
-    llm_logs = LlmLogMessage.objects.filter(api_key__user=user)
+    # Get all logs for the user, optionally filtered by project
+    event_logs_query = EventLogMessage.objects.filter(api_key__user=user)
+    llm_logs_query = LlmLogMessage.objects.filter(api_key__user=user)
+    
+    if project_id:
+        try:
+            project = Project.objects.get(id=project_id, user=user)
+            event_logs_query = event_logs_query.filter(project=project)
+            llm_logs_query = llm_logs_query.filter(project=project)
+        except Project.DoesNotExist:
+            return Response({"error": "Project not found"}, status=status.HTTP_404_NOT_FOUND)
+    
+    event_logs = event_logs_query.all()
+    llm_logs = llm_logs_query.all()
     
     # Calculate monthly log counts
     monthly_data = defaultdict(lambda: {"eventCount": 0, "llmCount": 0})
@@ -260,7 +273,7 @@ def get_analytics_data(request):
     ]
     
     # Get LLM sources distribution
-    llm_sources = llm_logs.values('source').annotate(value=Count('id'))
+    llm_sources = llm_logs_query.values('source').annotate(value=Count('id'))
     llm_sources_data = [
         {
             "name": source["source"] or "Unknown",
@@ -270,7 +283,7 @@ def get_analytics_data(request):
     ]
     
     # Get log levels distribution
-    log_levels = event_logs.values('level').annotate(count=Count('id'))
+    log_levels = event_logs_query.values('level').annotate(count=Count('id'))
     log_levels_data = [
         {
             "level": level["level"],
@@ -279,10 +292,38 @@ def get_analytics_data(request):
         for level in log_levels
     ]
     
+    # Get project distribution (when not filtered by project)
+    projects_data = []
+    if not project_id:
+        event_projects = event_logs_query.values('project').annotate(count=Count('id'))
+        llm_projects = llm_logs_query.values('project').annotate(count=Count('id'))
+        
+        # Combine counts
+        project_counts = defaultdict(int)
+        for entry in event_projects:
+            project_counts[entry['project']] += entry['count']
+        
+        for entry in llm_projects:
+            project_counts[entry['project']] += entry['count']
+        
+        # Get project details and add to response
+        for project_id, count in project_counts.items():
+            try:
+                project = Project.objects.get(id=project_id)
+                projects_data.append({
+                    "id": project.id,
+                    "name": project.name,
+                    "count": count
+                })
+            except Project.DoesNotExist:
+                # Skip if project doesn't exist
+                continue
+    
     return Response({
         "monthly_logs": monthly_logs,
         "llm_sources": llm_sources_data,
-        "log_levels": log_levels_data
+        "log_levels": log_levels_data,
+        "projects": projects_data
     })
 
 @api_view(['GET'])
@@ -292,22 +333,39 @@ def download_analytics_csv(request, data_type):
     Download analytics data as CSV based on the specified type
     """
     user = request.user
+    project_id = request.query_params.get('project_id')
     
-    if data_type not in ["monthly", "sources", "levels", "all"]:
+    if data_type not in ["monthly", "sources", "levels", "projects", "all"]:
         return Response({"error": "Invalid data type"}, status=status.HTTP_400_BAD_REQUEST)
     
     # Generate filename with current date
     current_date = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"{user.username}_analytics_{data_type}_{current_date}.csv"
+    filename = f"{user.username}_analytics_{data_type}"
+    if project_id:
+        try:
+            project = Project.objects.get(id=project_id, user=user)
+            filename += f"_{project.name}"
+        except Project.DoesNotExist:
+            return Response({"error": "Project not found"}, status=status.HTTP_404_NOT_FOUND)
+    
+    filename += f"_{current_date}.csv"
     
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     
     writer = csv.writer(response)
     
-    # Get all logs for the user
-    event_logs = EventLogMessage.objects.filter(api_key__user=user)
-    llm_logs = LlmLogMessage.objects.filter(api_key__user=user)
+    # Get filtered logs
+    event_logs_query = EventLogMessage.objects.filter(api_key__user=user)
+    llm_logs_query = LlmLogMessage.objects.filter(api_key__user=user)
+    
+    if project_id:
+        project = Project.objects.get(id=project_id, user=user)
+        event_logs_query = event_logs_query.filter(project=project)
+        llm_logs_query = llm_logs_query.filter(project=project)
+    
+    event_logs = event_logs_query.all()
+    llm_logs = llm_logs_query.all()
     
     if data_type in ["monthly", "all"]:
         # Calculate monthly log counts
@@ -329,7 +387,7 @@ def download_analytics_csv(request, data_type):
     
     if data_type in ["sources", "all"] and data_type != "monthly":
         # Get LLM sources distribution
-        llm_sources = llm_logs.values('source').annotate(count=Count('id'))
+        llm_sources = llm_logs_query.values('source').annotate(count=Count('id'))
         
         # Write sources data to CSV
         writer.writerow(["Source", "Count"])
@@ -338,11 +396,72 @@ def download_analytics_csv(request, data_type):
     
     if data_type in ["levels", "all"] and data_type not in ["monthly", "sources"]:
         # Get log levels distribution
-        log_levels = event_logs.values('level').annotate(count=Count('id'))
+        log_levels = event_logs_query.values('level').annotate(count=Count('id'))
         
         # Write levels data to CSV
         writer.writerow(["Level", "Count"])
         for level in log_levels:
             writer.writerow([level["level"], level["count"]])
     
+    if data_type in ["projects", "all"] and not project_id and data_type not in ["monthly", "sources", "levels"]:
+        # Get project distribution
+        event_projects = EventLogMessage.objects.filter(api_key__user=user).values('project__name', 'project').annotate(count=Count('id'))
+        llm_projects = LlmLogMessage.objects.filter(api_key__user=user).values('project__name', 'project').annotate(count=Count('id'))
+        
+        # Combine counts
+        project_counts = defaultdict(lambda: {"name": "", "event_count": 0, "llm_count": 0})
+        
+        for entry in event_projects:
+            project_id = entry['project']
+            project_counts[project_id]["name"] = entry['project__name']
+            project_counts[project_id]["event_count"] = entry['count']
+        
+        for entry in llm_projects:
+            project_id = entry['project']
+            project_counts[project_id]["name"] = entry['project__name']
+            project_counts[project_id]["llm_count"] = entry['count']
+        
+        # Write projects data to CSV
+        writer.writerow(["Project", "Event Logs", "LLM Logs", "Total Logs"])
+        for project_id, data in project_counts.items():
+            total = data["event_count"] + data["llm_count"]
+            writer.writerow([data["name"], data["event_count"], data["llm_count"], total])
+    
     return response
+
+class ProjectViewSet(viewsets.ModelViewSet):
+    serializer_class = ProjectSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        user = self.request.user
+        return Project.objects.filter(user=user)
+    
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+    
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        data = serializer.data
+        
+        # Add log counts to the response
+        data['event_log_count'] = EventLogMessage.objects.filter(project=instance).count()
+        data['llm_log_count'] = LlmLogMessage.objects.filter(project=instance).count()
+        data['log_count'] = data['event_log_count'] + data['llm_log_count']
+        
+        return Response(data)
+    
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        data = serializer.data
+        
+        # Add log counts to each project
+        for project_data in data:
+            project_id = project_data['id']
+            project_data['event_log_count'] = EventLogMessage.objects.filter(project_id=project_id).count()
+            project_data['llm_log_count'] = LlmLogMessage.objects.filter(project_id=project_id).count()
+            project_data['log_count'] = project_data['event_log_count'] + project_data['llm_log_count']
+        
+        return Response(data)

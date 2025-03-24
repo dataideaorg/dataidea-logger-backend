@@ -6,6 +6,7 @@ router = DefaultRouter()
 router.register(r'api-keys', views.ApiKeyViewSet, basename='api-key')
 router.register(r'event-logs', views.EventLogMessageViewSet, basename='event-log')
 router.register(r'llm-logs', views.LlmLogMessageViewSet, basename='llm-log')
+router.register(r'projects', views.ProjectViewSet, basename='project')
 
 urlpatterns = [
     path('', include(router.urls)),

@@ -13,8 +13,23 @@ class ApiKey(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.user.username})"
+    
+class Project(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='projects')
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.user.username})"
+
+    class Meta:
+        ordering = ['-created_at']
+        unique_together = ['user', 'name']
 
 class EventLogMessage(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='event_log_messages')
     api_key = models.ForeignKey(ApiKey, on_delete=models.CASCADE, related_name='event_log_messages')
     user_id = models.CharField(max_length=100, help_text="The user id of the user who made the request")
     message = models.TextField(help_text="The log message")
@@ -32,6 +47,7 @@ class EventLogMessage(models.Model):
 
 
 class LlmLogMessage(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='llm_log_messages')
     api_key = models.ForeignKey(ApiKey, on_delete=models.CASCADE, related_name='llm_log_messages')
     user_id = models.CharField(max_length=100, help_text="The user id of the user who made the request")
     source = models.TextField(help_text="The which model or service the log message is from")
