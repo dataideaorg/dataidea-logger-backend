@@ -23,7 +23,8 @@ class EventLogMessageSerializer(serializers.ModelSerializer):
 
 class EventLogMessageCreateSerializer(serializers.ModelSerializer):
     api_key = serializers.UUIDField(write_only=True)
-    project_name = serializers.CharField(required=False, write_only=True)
+    project_name = serializers.CharField(required=False, write_only=True, help_text="Name of the project. If provided, the system will use or create a project with this name rather than requiring a project ID.")
+    project = serializers.PrimaryKeyRelatedField(required=False, queryset=Project.objects.all(), help_text="Project ID. Only required if project_name is not provided.")
     
     class Meta:
         model = EventLogMessage
@@ -79,7 +80,8 @@ class LlmLogMessageSerializer(serializers.ModelSerializer):
 
 class LlmLogMessageCreateSerializer(serializers.ModelSerializer):
     api_key = serializers.UUIDField(write_only=True)
-    project_name = serializers.CharField(required=False, write_only=True)
+    project_name = serializers.CharField(required=False, write_only=True, help_text="Name of the project. If provided, the system will use or create a project with this name rather than requiring a project ID.")
+    project = serializers.PrimaryKeyRelatedField(required=False, queryset=Project.objects.all(), help_text="Project ID. Only required if project_name is not provided.")
     
     class Meta:
         model = LlmLogMessage

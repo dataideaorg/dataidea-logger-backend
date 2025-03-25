@@ -177,6 +177,15 @@ def download_all_logs(request):
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def create_event_log(request):
+    """
+    Create a new event log entry.
+    
+    You can specify the project either by:
+    1. Providing the 'project' field with the project ID (number)
+    2. Providing the 'project_name' field with the project name (string)
+    
+    If a project with the given name doesn't exist, it will be created automatically.
+    """
     serializer = EventLogMessageCreateSerializer(data=request.data)
     if serializer.is_valid():
         serializer.save()
@@ -186,6 +195,15 @@ def create_event_log(request):
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def create_llm_log(request):
+    """
+    Create a new LLM log entry.
+    
+    You can specify the project either by:
+    1. Providing the 'project' field with the project ID (number)
+    2. Providing the 'project_name' field with the project name (string)
+    
+    If a project with the given name doesn't exist, it will be created automatically.
+    """
     serializer = LlmLogMessageCreateSerializer(data=request.data)
     if serializer.is_valid():
         serializer.save()
