@@ -78,7 +78,6 @@ class GoogleCallbackAPI(APIView):
             if not id_info.get('email_verified', False):
                 return Response({"error": "Email not verified with Google"}, status=status.HTTP_400_BAD_REQUEST)
             
-            print('Creating user')
             # Get or create user
             user, created = User.objects.get_or_create(
                 email=email,
@@ -87,7 +86,6 @@ class GoogleCallbackAPI(APIView):
                 }
             )
 
-            print('User created')
             
             # Generate JWT tokens
             refresh = RefreshToken.for_user(user)
