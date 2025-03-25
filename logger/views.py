@@ -50,13 +50,37 @@ class ApiKeyViewSet(viewsets.ModelViewSet):
         
         return Response(serializer.data)
 
-class EventLogMessageViewSet(viewsets.ReadOnlyModelViewSet):
+class EventLogMessageViewSet(viewsets.ModelViewSet):
     serializer_class = EventLogMessageSerializer
     permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ['get', 'delete', 'head', 'options']  # Only allow GET, DELETE
     
     def get_queryset(self):
         user = self.request.user
-        return EventLogMessage.objects.filter(api_key__user=user)
+        queryset = EventLogMessage.objects.filter(api_key__user=user)
+        
+        # Filter by project if project ID is provided in query params
+        project_id = self.request.query_params.get('project')
+        if project_id:
+            try:
+                project = Project.objects.get(id=project_id, user=user)
+                queryset = queryset.filter(project=project)
+            except Project.DoesNotExist:
+                # If project doesn't exist or doesn't belong to user, return empty queryset
+                return EventLogMessage.objects.none()
+        
+        return queryset
+    
+    def destroy(self, request, *args, **kwargs):
+        """
+        Delete a single event log entry
+        """
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response({
+            "status": "success", 
+            "message": "Log entry deleted successfully"
+        }, status=status.HTTP_200_OK)
     
     @action(detail=False, methods=['get'])
     def download(self, request):
@@ -85,13 +109,37 @@ class EventLogMessageViewSet(viewsets.ReadOnlyModelViewSet):
         
         return response
 
-class LlmLogMessageViewSet(viewsets.ReadOnlyModelViewSet):
+class LlmLogMessageViewSet(viewsets.ModelViewSet):
     serializer_class = LlmLogMessageSerializer
     permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ['get', 'delete', 'head', 'options']  # Only allow GET, DELETE
     
     def get_queryset(self):
         user = self.request.user
-        return LlmLogMessage.objects.filter(api_key__user=user)
+        queryset = LlmLogMessage.objects.filter(api_key__user=user)
+        
+        # Filter by project if project ID is provided in query params
+        project_id = self.request.query_params.get('project')
+        if project_id:
+            try:
+                project = Project.objects.get(id=project_id, user=user)
+                queryset = queryset.filter(project=project)
+            except Project.DoesNotExist:
+                # If project doesn't exist or doesn't belong to user, return empty queryset
+                return LlmLogMessage.objects.none()
+        
+        return queryset
+    
+    def destroy(self, request, *args, **kwargs):
+        """
+        Delete a single LLM log entry
+        """
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response({
+            "status": "success", 
+            "message": "Log entry deleted successfully"
+        }, status=status.HTTP_200_OK)
     
     @action(detail=False, methods=['get'])
     def download(self, request):
@@ -133,10 +181,24 @@ def download_all_logs(request):
     event_logs = EventLogMessage.objects.filter(api_key__user=user)
     llm_logs = LlmLogMessage.objects.filter(api_key__user=user)
     
+    # Filter by project if project ID is provided
+    project_id = request.query_params.get('project')
+    filename_project = ""
+    
+    if project_id:
+        try:
+            project = Project.objects.get(id=project_id, user=user)
+            event_logs = event_logs.filter(project=project)
+            llm_logs = llm_logs.filter(project=project)
+            filename_project = f"_{project.name}"
+        except Project.DoesNotExist:
+            # If project doesn't exist or doesn't belong to user, return error
+            return Response({"error": "Project not found"}, status=status.HTTP_404_NOT_FOUND)
+    
     # Create the HttpResponse object with CSV content type
     response = HttpResponse(content_type='text/csv')
     timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-    response['Content-Disposition'] = f'attachment; filename="all_logs_{timestamp}.csv"'
+    response['Content-Disposition'] = f'attachment; filename="all_logs{filename_project}_{timestamp}.csv"'
     
     writer = csv.writer(response)
     
@@ -483,3 +545,54 @@ class ProjectViewSet(viewsets.ModelViewSet):
             project_data['log_count'] = project_data['event_log_count'] + project_data['llm_log_count']
         
         return Response(data)
+
+@api_view(['DELETE'])
+@permission_classes([permissions.IsAuthenticated])
+def delete_all_logs(request):
+    """
+    Delete all logs (both event and LLM) for the authenticated user.
+    Optionally filter by project using the 'project' query parameter.
+    """
+    user = request.user
+    
+    # Get user's logs
+    event_logs = EventLogMessage.objects.filter(api_key__user=user)
+    llm_logs = LlmLogMessage.objects.filter(api_key__user=user)
+    
+    # Filter by project if project ID is provided
+    project_id = request.query_params.get('project')
+    project_name = ""
+    
+    if project_id:
+        try:
+            project = Project.objects.get(id=project_id, user=user)
+            event_logs = event_logs.filter(project=project)
+            llm_logs = llm_logs.filter(project=project)
+            project_name = project.name
+        except Project.DoesNotExist:
+            # If project doesn't exist or doesn't belong to user, return error
+            return Response({"error": "Project not found"}, status=status.HTTP_404_NOT_FOUND)
+    
+    # Count logs before deletion
+    event_count = event_logs.count()
+    llm_count = llm_logs.count()
+    total_count = event_count + llm_count
+    
+    # Delete logs
+    event_logs.delete()
+    llm_logs.delete()
+    
+    # Prepare success message
+    message = f"Successfully deleted {total_count} logs"
+    if project_id:
+        message += f" from project '{project_name}'"
+    
+    return Response({
+        "status": "success",
+        "message": message,
+        "deleted_count": {
+            "event_logs": event_count,
+            "llm_logs": llm_count,
+            "total": total_count
+        }
+    }, status=status.HTTP_200_OK)

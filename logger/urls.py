@@ -16,4 +16,5 @@ urlpatterns = [
     path('event-log/', views.create_event_log, name='create_event_log'),
     path('llm-log/', views.create_llm_log, name='create_llm_log'),
     path('download/all-logs/', views.download_all_logs, name='download_all_logs'),
+    path('delete/all-logs/', views.delete_all_logs, name='delete_all_logs'),
 ] 
