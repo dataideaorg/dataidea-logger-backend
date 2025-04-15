@@ -92,33 +92,24 @@ WSGI_APPLICATION = 'main.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-os.environ.setdefault("PGDATABASE", "dataidea-logger")
-os.environ.setdefault("PGUSER", "postgres")
-os.environ.setdefault("PGPASSWORD", "postgres")
-os.environ.setdefault("PGHOST", "localhost")
-os.environ.setdefault("PGPORT", "5432")
+# os.environ.setdefault("PGDATABASE", "dataidea-logger")
+# os.environ.setdefault("PGUSER", "postgres")
+# os.environ.setdefault("PGPASSWORD", "postgres")
+# os.environ.setdefault("PGHOST", "localhost")
+# os.environ.setdefault("PGPORT", "5432")
 
 # for local development
-if os.getenv('PGDATABASE'):
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.environ['PGDATABASE'],
-            'USER': os.environ['PGUSER'],
-            'PASSWORD': os.environ['PGPASSWORD'],
-            'HOST': os.environ['PGHOST'],
-            'PORT': os.environ['PGPORT'],
-        }
-    }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
 
-
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ['PGDATABASE'],
+        'USER': os.environ['PGUSER'],
+        'PASSWORD': os.environ['PGPASSWORD'],
+        'HOST': os.environ['PGHOST'],
+        'PORT': os.environ['PGPORT'],
+    }
+}
 
 
 # Password validation
@@ -189,7 +180,7 @@ CORS_ALLOW_CREDENTIALS = True
 
 
 # Google OAuth2 settings
-GOOGLE_CLIENT_ID = os.environ['GOOGLE_CLIENT_ID']
-GOOGLE_CLIENT_SECRET = os.environ['GOOGLE_CLIENT_SECRET']
-GOOGLE_REDIRECT_URI = os.environ['GOOGLE_REDIRECT_URI']
-# GOOGLE_REDIRECT_URI = 'https://logger.dataidea.org/auth/google/callback'
+GOOGLE_CLIENT_ID = '47663849363-kht9ts6hspt5ovf8spbg39je17jobr1g.apps.googleusercontent.com'
+GOOGLE_CLIENT_SECRET = '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'
+# GOOGLE_REDIRECT_URI = 'http://localhost:8000/auth/google/callback'
+GOOGLE_REDIRECT_URI = 'https://logger.dataidea.org/auth/google/callback'
