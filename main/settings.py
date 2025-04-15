@@ -92,11 +92,11 @@ WSGI_APPLICATION = 'main.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-# os.environ.setdefault("PGDATABASE", "dataidea-logger")
-# os.environ.setdefault("PGUSER", "postgres")
-# os.environ.setdefault("PGPASSWORD", "postgres")
-# os.environ.setdefault("PGHOST", "localhost")
-# os.environ.setdefault("PGPORT", "5432")
+os.environ.setdefault("PGDATABASE", "dataidea_logger")
+os.environ.setdefault("PGUSER", "postgres")
+os.environ.setdefault("PGPASSWORD", "postgres")
+os.environ.setdefault("PGHOST", "localhost")
+os.environ.setdefault("PGPORT", "5432")
 
 # for local development
 
@@ -177,6 +177,13 @@ SIMPLE_JWT = {
 # CORS settings
 CORS_ALLOW_ALL_ORIGINS = True  
 CORS_ALLOW_CREDENTIALS = True
+
+# trusted origins
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3000',
+    'https://logger.dataidea.org',
+    'https://dataidea-logger-production.up.railway.app'
+]
 
 
 # Google OAuth2 settings
