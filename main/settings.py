@@ -40,6 +40,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Add whitenoise for static files
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',  # CORS middleware
     'django.middleware.common.CommonMiddleware',
@@ -89,16 +90,35 @@ WSGI_APPLICATION = 'main.wsgi.application'
 #     }
 # }
 
+# Database
+# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
+os.environ.setdefault("PGDATABASE", "dataidea_logger")
+os.environ.setdefault("PGUSER", "postgres")
+os.environ.setdefault("PGPASSWORD", "postgres")
+os.environ.setdefault("PGHOST", "localhost")
+os.environ.setdefault("PGPORT", "5432")
+
 # for local development
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+if os.environ.get('ENV') == 'local':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
-
-
-
+elif os.environ.get('ENV') == 'production':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ['PGDATABASE'],
+            'USER': os.environ['PGUSER'],
+            'PASSWORD': os.environ['PGPASSWORD'],
+            'HOST': os.environ['PGHOST'],
+            'PORT': os.environ['PGPORT'],
+        }
+    }
+else:
+    raise ValueError('Invalid environment')
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -135,7 +155,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Changed to staticfiles
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 # Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -161,14 +183,20 @@ SIMPLE_JWT = {
 }
 
 # CORS settings
-CORS_ALLOW_ALL_ORIGINS = True  # For development only, restrict in production
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+
+# trusted origins
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3000',
+    'https://logger.dataidea.org',
+    'https://logger.api.dataidea.org',
+    'https://dataidea-logger-production.up.railway.app'
+]
 
 
 # Google OAuth2 settings
 GOOGLE_CLIENT_ID = '47663849363-kht9ts6hspt5ovf8spbg39je17jobr1g.apps.googleusercontent.com'
 GOOGLE_CLIENT_SECRET = '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'
-
-
-GOOGLE_REDIRECT_URI = 'http://localhost:3000/auth/google/callback'
-# GOOGLE_REDIRECT_URI = 'https://logger.dataidea.org/auth/google/callback'
+# GOOGLE_REDIRECT_URI = 'http://localhost:8000/auth/google/callback'
+GOOGLE_REDIRECT_URI = 'https://logger.dataidea.org/auth/google/callback'
