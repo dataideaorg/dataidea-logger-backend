@@ -20,6 +20,15 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
+# trusted origins
+TRUSTED_ORIGINS = [
+    'http://localhost:3000',
+    'https://logger.dataidea.org',
+    'https://logger.api.dataidea.org',
+    'https://dataidea-logger-production.up.railway.app'
+]
+
+
 
 # Application definition
 
