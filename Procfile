@@ -1,0 +1,1 @@
+web: echo "from django.contrib.auth.models import User; User.objects.create_superuser('jumashafara', 'admin@example.com', 'Chappie@256') if not User.objects.filter(username='jumashafara').exists() else None" | python manage.py shell && python manage.py migrate && python manage.py collectstatic --noinput && gunicorn main.wsgi
