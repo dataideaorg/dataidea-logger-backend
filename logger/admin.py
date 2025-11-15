@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import ApiKey, EventLogMessage, LlmLogMessage
+from .models import ApiKey, EventLogMessage, LlmLogMessage, Project, EmailNotificationPreference
 
 @admin.register(ApiKey)
 class ApiKeyAdmin(admin.ModelAdmin):
@@ -26,3 +26,16 @@ class LlmLogMessageAdmin(admin.ModelAdmin):
     def query_preview(self, obj):
         return obj.query[:50] + '...' if len(obj.query) > 50 else obj.query
     query_preview.short_description = 'Query'
+
+@admin.register(Project)
+class ProjectAdmin(admin.ModelAdmin):
+    list_display = ('name', 'user', 'project_type', 'created_at', 'is_active')
+    list_filter = ('project_type', 'is_active', 'created_at')
+    search_fields = ('name', 'user__username', 'description')
+
+@admin.register(EmailNotificationPreference)
+class EmailNotificationPreferenceAdmin(admin.ModelAdmin):
+    list_display = ('user', 'email', 'enabled', 'notify_on_error', 'notify_on_warning', 'updated_at')
+    list_filter = ('enabled', 'notify_on_error', 'notify_on_warning')
+    search_fields = ('user__username', 'email')
+    readonly_fields = ('created_at', 'updated_at')
