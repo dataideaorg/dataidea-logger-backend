@@ -15,9 +15,20 @@ class ApiKey(models.Model):
         return f"{self.name} ({self.user.username})"
     
 class Project(models.Model):
+    PROJECT_TYPE_CHOICES = [
+        ('activity', 'Activity Event Logs'),
+        ('llm', 'LLM Event Logs'),
+    ]
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='projects')
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
+    project_type = models.CharField(
+        max_length=20,
+        choices=PROJECT_TYPE_CHOICES,
+        default='activity',
+        help_text="Type of logs this project will handle"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
 
