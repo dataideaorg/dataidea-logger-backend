@@ -73,3 +73,21 @@ class LlmLogMessage(models.Model):
     class Meta:
         ordering = ['-timestamp']
 
+
+class EmailNotificationPreference(models.Model):
+    """User preferences for email notifications when error logs are received"""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='email_notification_preference')
+    email = models.EmailField(help_text="Email address to send notifications to")
+    enabled = models.BooleanField(default=True, help_text="Enable/disable email notifications")
+    notify_on_error = models.BooleanField(default=True, help_text="Send email when error logs are received")
+    notify_on_warning = models.BooleanField(default=False, help_text="Send email when warning logs are received")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.email} ({'enabled' if self.enabled else 'disabled'})"
+
+    class Meta:
+        verbose_name = "Email Notification Preference"
+        verbose_name_plural = "Email Notification Preferences"
+

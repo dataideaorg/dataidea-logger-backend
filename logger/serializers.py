@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import ApiKey, EventLogMessage, LlmLogMessage, Project
+from .models import ApiKey, EventLogMessage, LlmLogMessage, Project, EmailNotificationPreference
 
 class ApiKeySerializer(serializers.ModelSerializer):
     class Meta:
@@ -128,4 +128,12 @@ class LlmLogMessageCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         api_key = validated_data.pop('api_key')
         log_message = LlmLogMessage.objects.create(api_key=api_key, **validated_data)
-        return log_message 
+        return log_message
+
+
+# Email Notification Preference Serializer
+class EmailNotificationPreferenceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmailNotificationPreference
+        fields = ['id', 'email', 'enabled', 'notify_on_error', 'notify_on_warning', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at'] 

@@ -12,12 +12,13 @@ import json
 from collections import defaultdict
 
 # Import models and serializers
-from .models import ApiKey, EventLogMessage, LlmLogMessage, Project
+from .models import ApiKey, EventLogMessage, LlmLogMessage, Project, EmailNotificationPreference
 from .serializers import (
     ApiKeySerializer,
     EventLogMessageSerializer, EventLogMessageCreateSerializer,
     LlmLogMessageSerializer, LlmLogMessageCreateSerializer,
-    ProjectSerializer
+    ProjectSerializer,
+    EmailNotificationPreferenceSerializer
 )
 
 # ViewSet for managing API keys
@@ -615,3 +616,40 @@ def delete_all_logs(request):
             "total": total_count
         }
     }, status=status.HTTP_200_OK)
+
+
+# ViewSet for managing email notification preferences
+class EmailNotificationPreferenceViewSet(viewsets.ModelViewSet):
+    serializer_class = EmailNotificationPreferenceSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ['get', 'post', 'put', 'patch', 'head', 'options']  # No DELETE
+
+    def get_queryset(self):
+        # Get preference for current user (there should only be one)
+        return EmailNotificationPreference.objects.filter(user=self.request.user)
+
+    def get_object(self):
+        # Get or create preference for current user
+        preference, created = EmailNotificationPreference.objects.get_or_create(
+            user=self.request.user,
+            defaults={'email': self.request.user.email}
+        )
+        return preference
+
+    def list(self, request, *args, **kwargs):
+        # Return the user's preference as a single object, not a list
+        preference = self.get_object()
+        serializer = self.get_serializer(preference)
+        return Response(serializer.data)
+
+    def perform_create(self, serializer):
+        # Associate preference with current user
+        serializer.save(user=self.request.user)
+
+    def update(self, request, *args, **kwargs):
+        # Get or create the preference and update it
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=kwargs.pop('partial', False))
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
