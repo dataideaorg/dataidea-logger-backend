@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
+from ..serializers import UserSerializer
 
 
 User = get_user_model()
@@ -38,7 +39,6 @@ class GoogleCallbackAPI(APIView):
     """
     def post(self, request):
         code = request.data.get('code')
-        print('Code:', code)
         
         if not code:
             return Response({"error": "Authorization code is required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -85,23 +85,18 @@ class GoogleCallbackAPI(APIView):
                     'username': email.split('@')[0],  
                 }
             )
-
             
             # Generate JWT tokens
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
 
-            # Login the user
-            print(user)
+            # Use UserSerializer to ensure consistency with regular login flow
+            user_data = UserSerializer(user).data
             
             return Response({
                 "access_token": access_token,
                 "refresh_token": str(refresh),
-                "user": {
-                    "id": user.id,
-                    "username": user.username,
-                    "email": user.email,
-                },
+                "user": user_data,
                 "created": created
             })
             
