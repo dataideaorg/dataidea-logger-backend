@@ -22,9 +22,7 @@ gunicorn = "23.0.0"
 idna = "3.10"
 inflection = "0.5.1"
 packaging = "24.2"
-pillow = "11.1.0"
 psycopg = "3.2.6"
-psycopg-binary = "3.2.6"
 psycopg-pool = "3.2.6"
 pyasn1 = "0.6.1"
 pyasn1-modules = "0.4.1"
@@ -39,6 +37,7 @@ typing-extensions = "4.13.2"
 uritemplate = "4.1.1"
 urllib3 = "2.3.0"
 whitenoise = "6.9.0"
+psycopg-binary = "^3.2.12"
 
 
 [build-system]

@@ -99,6 +99,7 @@ class GoogleCallbackAPI(APIView):
                 "refresh_token": str(refresh),
                 "user": {
                     "id": user.id,
+                    "username": user.username,
                     "email": user.email,
                 },
                 "created": created
