@@ -52,7 +52,7 @@ def send_error_notification_email(log_message: EventLogMessage):
         <html>
         <head>
             <style>
-                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                body {{ font-family: 'DM Sans', Arial, sans-serif; line-height: 1.6; color: #333; }}
                 .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
                 .header {{ background-color: {'#dc2626' if log_message.level == 'error' else '#f59e0b'}; color: white; padding: 20px; border-radius: 5px 5px 0 0; }}
                 .content {{ background-color: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; }}
@@ -86,8 +86,6 @@ def send_error_notification_email(log_message: EventLogMessage):
                     <div class="detail-row">
                         <span class="label">Project:</span> {log_message.project.name}
                     </div>
-                    {f'<div class="detail-row"><span class="label">Metadata:</span> {log_message.metadata}</div>' if log_message.metadata else ''}
-
                     <div class="footer">
                         <p>DATAIDEA Logger</p>
                         <p><a href="https://logger.dataidea.org/settings">Manage notification preferences</a></p>
