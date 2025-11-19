@@ -28,6 +28,10 @@ TRUSTED_ORIGINS = [
     'https://dataidea-logger-production.up.railway.app'
 ]
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://logger.dataidea.org',
+    'https://logger.api.dataidea.org',
+]
 
 
 # Application definition
